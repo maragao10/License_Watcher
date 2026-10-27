@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="card">
+  <div class="row" style="justify-content:space-between;align-items:center">
+    <h3 style="margin:0">Produtos monitorados</h3>
+    <a class="btn" href="{{ url_for('product_new') }}">+ Adicionar produto</a>
+  </div>
+  <div class="scroll">
+  <table>
+    <tr><th>Nome</th><th>URL</th><th>Consultas</th><th>Licenças</th><th>Última execução</th><th></th></tr>
+    {% for p in rows %}
+    <tr>
+      <td><b>{{ p.name }}</b>{% if not p.enabled %} <span class="mute">(desativado)</span>{% endif %}
+          {% if p.last_error %}<div class="err">{{ p.last_error }}</div>{% endif %}</td>
+      <td class="mute">{{ 'Manual (sem API)' if p.auth_type == 'manual' else p.base_url }}</td>
+      <td>{{ '—' if p.auth_type == 'manual' else p.n_checks }}</td>
+      <td>{{ p.n_lic }}</td>
+      <td class="mute">{{ (p.last_run or '—')[:16] }}</td>
+      <td style="white-space:nowrap">
+        <form class="inline" method="post" action="{{ url_for('product_test', pid=p.id) }}"><button class="ghost">Testar</button></form>
+        <a class="btn ghost" href="{{ url_for('product_edit', pid=p.id) }}">Editar</a>
+        <form class="inline" method="post" action="{{ url_for('product_delete', pid=p.id) }}"
+              onsubmit="return confirm('Remover {{ p.name }}?')"><button class="danger">Remover</button></form>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6" class="mute">Nenhum produto ainda.</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+</div>
+{% endblock %}

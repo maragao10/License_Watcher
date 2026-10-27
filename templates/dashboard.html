@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="row">
+  <div class="card stat"><div class="mute">Expiradas</div><div class="n" style="color:var(--bad)">{{ counts.expired }}</div></div>
+  <div class="card stat"><div class="mute">Vencem em até {{ warn }} dias</div><div class="n" style="color:var(--warn)">{{ counts.warn }}</div></div>
+  <div class="card stat"><div class="mute">Em dia</div><div class="n" style="color:var(--ok)">{{ counts.ok }}</div></div>
+  <div class="card stat"><div class="mute">Produtos</div><div class="n">{{ prods|length }}</div></div>
+</div>
+
+<div class="card">
+  <div class="row" style="justify-content:space-between;align-items:center">
+    <h3 style="margin:0">Licenças</h3>
+    <div>
+      <form class="inline" method="post" action="{{ url_for('refresh') }}"><button class="ghost">Atualizar agora</button></form>
+      <form class="inline" method="post" action="{{ url_for('alert_now') }}"><button>Atualizar e alertar no Webex</button></form>
+    </div>
+  </div>
+  <div class="scroll">
+  <table>
+    <tr><th>Status</th><th>Dias</th><th>Produto</th><th>Licença</th><th>Origem</th><th>Expira em</th></tr>
+    {% for l in lic %}
+    <tr>
+      <td><span class="pill {{ l.status }}">{{ {'ok':'Em dia','warn':'Atenção','expired':'Expirada'}[l.status] }}</span></td>
+      <td>{{ l.days }}</td>
+      <td>{{ l.product }}</td>
+      <td>{{ l.name }}</td>
+      <td class="mute">{{ l.check_label }}</td>
+      <td>{{ l.expires[:10] }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6" class="mute">Nenhuma licença carregada. Cadastre um produto em <a href="{{ url_for('products') }}">Produtos</a> e clique em Testar.</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+</div>
+
+{% set bad = prods|selectattr('last_error')|list %}
+{% if bad %}
+<div class="card">
+  <h3 style="margin-top:0">Produtos com falha</h3>
+  {% for p in bad %}<p><b>{{ p.name }}</b><br><span class="err">{{ p.last_error }}</span></p>{% endfor %}
+</div>
+{% endif %}
+{% endblock %}

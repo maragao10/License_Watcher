@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block body %}
+<form method="post" class="card" id="f">
+  <h3 style="margin-top:0">{{ 'Editar' if p else 'Adicionar' }} produto</h3>
+
+  {% if not p %}
+  <input type="hidden" name="template" id="tpl" value="custom">
+  {% else %}<input type="hidden" name="template" value="{{ p.template }}">{% endif %}
+
+  <div class="grid">
+    <div><label>Nome</label><input type="text" name="name" required value="{{ p.name if p }}"></div>
+    <div data-auth="vcenter bearer basic header session none"><label>URL base (ex: https://host:8089)</label><input type="text" name="base_url" required value="{{ p.base_url if p }}"></div>
+    <div><label>Autenticação</label>
+      <select name="auth_type" id="auth">
+        {% for v, l in [('vcenter','vCenter / vSphere (usuário e senha)'),('bearer','Bearer token'),('basic','Usuário e senha (basic)'),('header','Header customizado (API key)'),('session','Login que devolve token (ex: Catalyst Center)'),('manual','Manual (sem API: informe nome e data)'),('none','Nenhuma')] %}
+        <option value="{{ v }}" {{ 'selected' if p and p.auth_type==v }}>{{ l }}</option>{% endfor %}
+      </select></div>
+  </div>
+
+  <div class="grid">
+    <div data-auth="basic session vcenter"><label>Usuário</label><input type="text" name="username" value="{{ p.username if p }}"></div>
+    <div data-auth="basic session vcenter"><label>Senha {{ '(vazio = manter)' if p }}</label><input type="password" name="password" autocomplete="new-password"></div>
+    <div data-auth="bearer header"><label>Token / chave {{ '(vazio = manter)' if p }}</label><input type="password" name="token" autocomplete="new-password"></div>
+    <div data-auth="header"><label>Nome do header</label><input type="text" name="header_name" value="{{ p.header_name if p }}" placeholder="X-API-Key"></div>
+    <div data-auth="session"><label>Caminho do login</label><input type="text" name="login_path" value="{{ p.login_path if p }}"></div>
+    <div data-auth="session"><label>Campo do token na resposta</label><input type="text" name="token_field" value="{{ p.token_field if p }}"></div>
+    <div data-auth="session"><label>Header do token nas chamadas</label><input type="text" name="token_header" value="{{ p.token_header if p }}"></div>
+  </div>
+
+  <div data-auth="vcenter bearer basic header session none">
+    <label><input type="checkbox" name="verify_ssl" {{ 'checked' if (p and p.verify_ssl) }}> Validar certificado SSL (desmarque para cert autoassinado)</label>
+  </div>
+  <label><input type="checkbox" name="enabled" {{ 'checked' if (not p or p.enabled) }}> Ativo</label>
+
+  <div id="checks-wrap">
+  <h4 style="margin-bottom:0">Consultas de licença</h4>
+  <div class="mute">Cada consulta é uma chamada GET. O campo "lista" é o caminho até a lista no JSON (ex: <code>entry</code> ou <code>response.items</code>; vazio se a resposta já é a lista); "nome" e "expira" são caminhos dentro de cada item (ex: <code>content.expiration_time</code>). Datas ISO, dd/mm/aaaa ou epoch são aceitas. Para um mesmo produto com várias licenças em endpoints diferentes (ex: Splunk Enterprise e ITSI), adicione uma consulta por endpoint.</div>
+  <div id="checks"></div>
+  <button type="button" class="ghost" id="add">+ Adicionar consulta</button>
+  </div>
+  <div class="mute" id="vc-note" style="display:none">No vCenter não há consultas a configurar: o app lê todas as licenças direto pela API do vSphere. Informe a URL (ex: https://vcenter.seudominio.com), um usuário somente leitura e a senha.</div>
+
+  <div id="manual-wrap" style="display:none">
+  <h4 style="margin-bottom:0">Licenças (cadastro manual)</h4>
+  <div class="mute">Para produtos sem API de licença (ex: ThousandEyes). Informe o nome da licença e a data de vencimento; elas entram no Dashboard e no alerta do Webex como as outras. Quando renovar, volte aqui e atualize a data.</div>
+  <div id="manual-rows"></div>
+  <button type="button" class="ghost" id="add-manual">+ Adicionar licença</button>
+  </div>
+
+  <div style="margin-top:18px">
+    <button>Salvar</button>
+    <a class="btn ghost" href="{{ url_for('products') }}">Cancelar</a>
+  </div>
+</form>
+
+<script>
+const TEMPLATES = {{ templates|tojson }};
+const existing = {{ checks|tojson }};
+const existingManual = {{ manual|tojson }};
+const f = document.getElementById('f');
+const box = document.getElementById('checks');
+const manualBox = document.getElementById('manual-rows');
+const esc = s => (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+
+function addCheck(c) {
+  c = c || {};
+  const d = document.createElement('div');
+  d.className = 'check';
+  d.innerHTML = `<div class="grid">
+    <div><label>Rótulo</label><input type="text" name="c_label" value="${esc(c.label)}"></div>
+    <div><label>Caminho (GET)</label><input type="text" name="c_path" value="${esc(c.path)}"></div>
+    <div><label>Lista no JSON</label><input type="text" name="c_items" value="${esc(c.items_path)}"></div>
+    <div><label>Campo do nome</label><input type="text" name="c_name" value="${esc(c.name_field)}"></div>
+    <div><label>Campo de expiração</label><input type="text" name="c_expires" value="${esc(c.expires_field)}"></div>
+  </div><button type="button" class="danger" style="margin-top:8px">Remover consulta</button>`;
+  d.querySelector('button').onclick = () => d.remove();
+  box.appendChild(d);
+}
+
+function addManual(m) {
+  m = m || {};
+  const d = document.createElement('div');
+  d.className = 'check';
+  d.innerHTML = `<div class="grid">
+    <div><label>Nome da licença</label><input type="text" name="m_name" value="${esc(m.name)}" placeholder="ex: ThousandEyes - contrato"></div>
+    <div><label>Vence em</label><input type="date" name="m_date" value="${esc(m.date)}"></div>
+  </div><button type="button" class="danger" style="margin-top:8px">Remover licença</button>`;
+  d.querySelector('button').onclick = () => d.remove();
+  manualBox.appendChild(d);
+}
+
+function showAuth() {
+  const a = document.getElementById('auth').value;
+  document.querySelectorAll('[data-auth]').forEach(e => {
+    e.style.display = e.dataset.auth.split(' ').includes(a) ? '' : 'none';
+  });
+  document.getElementById('checks-wrap').style.display = (a === 'vcenter' || a === 'manual') ? 'none' : '';
+  document.getElementById('vc-note').style.display = a === 'vcenter' ? '' : 'none';
+  document.getElementById('manual-wrap').style.display = a === 'manual' ? '' : 'none';
+  f.elements['base_url'].required = a !== 'manual';
+  if (a === 'manual' && !manualBox.children.length) addManual();
+}
+document.getElementById('auth').onchange = showAuth;
+
+function setVal(n, v) { const e = f.elements[n]; if (e && v !== undefined) e.value = v; }
+
+const tpl = document.getElementById('tpl');
+if (tpl) {
+  const apply = () => {
+    const t = TEMPLATES[tpl.value];
+    setVal('auth_type', t.auth_type);
+    setVal('base_url', t.base_url || f.elements['base_url'].value);
+    setVal('login_path', t.login_path || '');
+    setVal('token_field', t.token_field || '');
+    setVal('token_header', t.token_header || '');
+    box.innerHTML = '';
+    (t.checks.length ? t.checks : [{}]).forEach(addCheck);
+    showAuth();
+  };
+  tpl.onchange = apply;
+  apply();
+} else {
+  (existing.length ? existing : [{}]).forEach(addCheck);
+  existingManual.forEach(addManual);
+  showAuth();
+}
+document.getElementById('add').onclick = () => addCheck();
+document.getElementById('add-manual').onclick = () => addManual();
+</script>
+{% endblock %}

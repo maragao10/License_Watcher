@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block body %}
+<form method="post" class="card">
+  <h3 style="margin-top:0">Alertas Webex</h3>
+  <div class="grid">
+    <div><label>Avisar quando faltar até (dias)</label>
+      <input type="number" name="warn_days" min="1" value="{{ s.warn_days }}"></div>
+    <div><label>Dia da semana do alerta</label>
+      <select name="schedule_day">
+        {% for v, l in [('mon','Segunda'),('tue','Terça'),('wed','Quarta'),('thu','Quinta'),('fri','Sexta'),('sat','Sábado'),('sun','Domingo')] %}
+        <option value="{{ v }}" {{ 'selected' if s.schedule_day==v }}>{{ l }}</option>{% endfor %}
+      </select></div>
+    <div><label>Hora (0-23)</label><input type="number" name="schedule_hour" min="0" max="23" value="{{ s.schedule_hour }}"></div>
+  </div>
+
+  <label>Como enviar ao Webex</label>
+  <select name="webex_mode" id="mode">
+    <option value="webhook" {{ 'selected' if s.webex_mode=='webhook' }}>Incoming Webhook</option>
+    <option value="bot" {{ 'selected' if s.webex_mode=='bot' }}>Bot (token + sala)</option>
+  </select>
+
+  <div id="m-webhook"><label>URL do webhook</label>
+    <input type="text" name="webex_webhook_url" value="{{ s.webex_webhook_url }}"></div>
+  <div id="m-bot">
+    <label>Token do bot (vazio = manter)</label><input type="password" name="webex_bot_token" autocomplete="new-password">
+    <label>ID da sala</label><input type="text" name="webex_room_id" value="{{ s.webex_room_id }}">
+  </div>
+
+  <label><input type="checkbox" name="send_ok" {{ 'checked' if s.send_ok=='1' }}> Mandar mensagem "tudo ok" quando nada vencer</label>
+
+  <div style="margin-top:16px">
+    <button name="action" value="save">Salvar</button>
+    <button name="action" value="test" class="ghost">Salvar e enviar teste</button>
+  </div>
+  <p class="mute">A cada execução, tudo que estiver dentro da janela é alertado de novo, então o aviso se repete toda semana até a licença ser renovada.</p>
+</form>
+<script>
+const m = document.getElementById('mode');
+const sync = () => {
+  document.getElementById('m-webhook').style.display = m.value === 'webhook' ? '' : 'none';
+  document.getElementById('m-bot').style.display = m.value === 'bot' ? '' : 'none';
+};
+m.onchange = sync; sync();
+</script>
+{% endblock %}

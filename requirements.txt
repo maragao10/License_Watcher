@@ -1,0 +1,5 @@
+flask>=3.0
+requests>=2.31
+cryptography>=42
+apscheduler>=3.10
+pyvmomi>=8.0

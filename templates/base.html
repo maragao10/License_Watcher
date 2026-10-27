@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>License Watcher</title>
+<style>
+  :root { color-scheme: light dark; --bg:#f5f7fa; --card:#fff; --ink:#1b2430; --mute:#6b7785; --line:#e3e8ef;
+          --brand:#0b6bcb; --ok:#1a9a4b; --warn:#d98a00; --bad:#d23b3b; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0f1419; --card:#18202a; --ink:#e8edf3; --mute:#93a0ae; --line:#2a3442; --brand:#4aa3ff; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.45 system-ui, sans-serif; }
+  header { background:var(--card); border-bottom:1px solid var(--line); padding:0 20px;
+           display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
+  header b { padding:14px 0; }
+  header a { color:var(--mute); text-decoration:none; padding:14px 0; border-bottom:2px solid transparent; }
+  header a.on { color:var(--brand); border-color:var(--brand); }
+  main { max-width:1100px; margin:20px auto; padding:0 16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:16px; }
+  .row { display:flex; gap:12px; flex-wrap:wrap; }
+  .stat { flex:1; min-width:140px; }
+  .stat .n { font-size:32px; font-weight:700; }
+  table { width:100%; border-collapse:collapse; }
+  th, td { text-align:left; padding:9px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--mute); font-weight:600; font-size:13px; }
+  .pill { display:inline-block; padding:2px 10px; border-radius:99px; font-size:12px; font-weight:600; color:#fff; }
+  .pill.ok { background:var(--ok); } .pill.warn { background:var(--warn); } .pill.expired { background:var(--bad); }
+  .flash { background:var(--card); border:1px solid var(--brand); border-radius:8px; padding:10px 14px; margin-bottom:12px; }
+  button, .btn { background:var(--brand); color:#fff; border:0; border-radius:7px; padding:8px 14px;
+                 cursor:pointer; font:inherit; text-decoration:none; display:inline-block; }
+  button.ghost, .btn.ghost { background:transparent; color:var(--brand); border:1px solid var(--brand); }
+  button.danger { background:var(--bad); }
+  label { display:block; font-size:13px; color:var(--mute); margin:10px 0 3px; }
+  input[type=text], input[type=password], input[type=number], input[type=date], select {
+    width:100%; padding:8px; border:1px solid var(--line); border-radius:7px; background:var(--bg); color:var(--ink); font:inherit; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:0 14px; }
+  .mute { color:var(--mute); font-size:13px; }
+  .err { color:var(--bad); font-size:13px; }
+  .check { border:1px dashed var(--line); border-radius:8px; padding:10px; margin:10px 0; }
+  form.inline { display:inline; }
+  .scroll { overflow-x:auto; }
+</style>
+</head>
+<body>
+<header>
+  <b>🔑 License Watcher</b>
+  <a href="{{ url_for('dashboard') }}" class="{{ 'on' if request.endpoint=='dashboard' }}">Dashboard</a>
+  <a href="{{ url_for('products') }}" class="{{ 'on' if request.endpoint and request.endpoint.startswith('product') }}">Produtos</a>
+  <a href="{{ url_for('settings') }}" class="{{ 'on' if request.endpoint=='settings' }}">Alertas Webex</a>
+</header>
+<main>
+  {% with msgs = get_flashed_messages() %}{% for m in msgs %}<div class="flash">{{ m }}</div>{% endfor %}{% endwith %}
+  {% block body %}{% endblock %}
+</main>
+</body>
+</html>
