@@ -1,6 +1,6 @@
-# Cisco License Watcher (web)
+# License Watcher
 
-App local com tela gráfica para monitorar validade de licenças de produtos Cisco (e qualquer produto com API REST) e avisar no Webex.
+App local com tela gráfica para monitorar validade de licenças de produtos com API REST e avisar no Webex.
 
 ## Rodar
 ```bash
